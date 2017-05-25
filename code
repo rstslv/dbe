@@ -1,0 +1,187 @@
+# dbe
+// NIR.cpp: определяет точку входа для консольного приложения.
+//
+
+#include "stdafx.h"
+#include <iostream>
+#include <ctime>
+#include <cassert>
+#include <string>
+using namespace std;
+namespace NIR
+{
+	const int sz = 10;// тут константы размеров массива для проверки на выход за границу
+	class db
+	{
+		struct attribute
+		{
+			enum domain {
+				INT,
+				BOOL,
+				DATE
+			};
+			int id;
+		};
+		struct value
+		{
+			int number;
+			time_t time;
+			string name;
+		};
+		struct table
+		{
+			int dkey;
+			int ckey;
+			attribute atr[sz];
+			value name;
+			int amount; //текущий
+		};
+		struct column_t {
+			int ckey;
+			int attr;//позиция атрибута, индекс
+			long value;
+			bool isDeleted;
+		};
+		struct familycolumn {
+			int dkey;
+			column_t columns[sz];
+			int amount; //текущий указатель
+		};
+		struct supercolumn {
+			int count; //текущий указатель
+			familycolumn fc[sz];
+		};
+		//подумать: более сложная структура, метка isdeleted на распр. или на класт. ключе;
+		//тогда все элементы можно не проходить 
+		void show(table tab) 
+		{
+			//массив, берем распр ключ, подставляем его на первое место, класт ключ [распр, класт, и все элементы в один массив дальше]
+			// и затем второй ключ таким же образом, получили массив из веторов с интами
+			for (int i = 0;i < sz;i++)
+				for (int j = 0;j < tab.amount;j++)
+					cout << tab.atr; //вывод atr
+			//for (int i = 0;i < tab.amount;i++)
+			//	switch (tab.atr[i])
+			//	{
+			//		case 
+			//	}
+			
+			// for 0 to amout 
+			//t.art[i] case type int перевод в типы array[i,j] case char..
+
+			//switch cout
+			//cоut << "INT\t" << "BOOL\t" << "DATE\t" << endl;
+
+			//cout << arr[0] << "\t" << arr[1] << "\t" << arr[2]  << "\t" << endl;
+				//2 /// "jdbnvldkvjn"  // false - пример
+				//все элементы преобразую в массив интов, по свитч кейсу, использоую инт инту ту дэйт и ккаст к буллвеаому типу, а в инсерте наоборот
+		}
+		int ifconsists(int dk, int ck, supercolumn col) //в таблице есть кортеж с таким-то праймари кей
+		{
+			bool check1 = false;
+			bool check2 = false;
+			for (int i = 0;i < col.count;i++)
+			{
+				if (col.fc[i].dkey == dk)
+				{
+					check1 == true;
+					break;
+				}
+				else
+				{
+					break;
+				}
+			}
+			for (int i = 0;i < col.count;i++)
+				for (int j = 0;j < col.fc[i].amount;j++)
+			{
+				if (col.fc[i].columns[j].ckey == ck)
+				{
+					check2 = true;
+					break;
+				}
+				else
+				{
+					break;
+				}
+			}
+			if (check1 && check2) //проверяет, еcть ли распределительный и кластерный ключи вместе
+				return col.count;
+			else return -1;
+		}
+			//ifconsist(ищет ключи в системе оба то есть праймари, если не правда, то для апдейта иф конситс будет тру
+		void insert(table tab, long int arr[], supercolumn col)
+		{
+			int ck, dk;
+			bool check(false);
+			assert(tab.amount + 1 == sz); //проверка массива на выход за границу
+			tab.amount++;
+			for (int i = 0;i < (sizeof(arr) / sizeof(*arr));i++)
+			{
+				if (ifconsists(tab.dkey,tab.ckey,col) == -1)
+				{
+					check = true;
+					break;
+				}
+				else
+				{
+					break;
+				}
+			}
+			if (ifconsists(col) == -1) //нет ключей
+			{
+
+				//можно вставлять 
+				// находим встсавка в конец ключа суперстолбца
+			}
+			else
+			{
+				assert(ifconsists( < 0);//ошибка
+			}				
+		}
+		void init(column_t col, int dkey)
+		{
+			col.value++;
+			insert()
+			//ключ идет из инсерта
+			//увкеличиваем текущее  количесто элементов и вставляем
+		}
+		void update(table tab, long int arr[], column_t key, supercolumn fam)// (table, [массив значений], номер элемента или attr value 
+	    // update where "xyz"
+		{//номер атрибута равен такому-то значеник
+			if (ifconsists( > 0)
+				insert(tab, arr);
+			else cout << "Элементов для обновления не найдено" << endl;
+			{// нахлдим нужный стобеци проверить изменился ли элемент, если не изменился, то новый кортеж(находим распр потом класт ключи
+				for each (column_t obj in col.columns)
+				{//delete и insert
+					if (obj.isDeleted == true)
+					{
+						check = true;
+						// новый кортеж в конец массива
+					}// создаем новую суперколонку и делаем оперрацию инсёрт, в ней номер распрр ключа и знапчение//
+					//распр провееряем и кластерный если оба совпадают, то удаляем все вхождения и ставим новые, 
+					//если совпадает клстерный ключ , находим все вхождения кластерного такого ключа и удаляем итх, а
+					//если распр, то ищнем в распр кюче значения кластерного ключа, которое совпадаем , если нашли дбавляем удаляем,
+					//если не нашли то тупо добавляем; если не нашли распр ключ, то создаем новый и тупо добавляем в конец
+				}
+			}
+		}
+				//если нашли insert т е втсавка в конец, добавление элемента в нужный супертсобец
+				//	если нет, то создание ноового суперстолбца или инцициализация суперстолбца новыми значениями
+				//	распределительный ключ идёт в инит
+		}
+			
+		
+		
+		int main()
+		{
+			//init
+			//insert
+			//show
+			//update
+			//show
+			return 0;
+		}
+	};
+}
