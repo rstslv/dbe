@@ -1,0 +1,292 @@
+
+/*
+1) при инсёрте создается две фамили кол с одинаковым распр ключом, значение распр должно быть одно, вывод прежний
+2) в update должен быть fcinit -> fcinsert (если не находит распр ключа, то создает новую пустую, а если находит то в конец текущего кортежа записывает новые колонки 
+
+1)удаление значений
+*/
+
+#include "stdafx.h"
+#include <iostream>
+#include <ctime>
+#include <cassert>
+#include <string>
+#include <cstdlib>
+#include <stdio.h>
+
+using namespace std;
+
+const int sz = 10;
+enum domain_t
+{
+	INT,
+	CHAR,
+	BOOL
+} dom;
+struct attribute
+{
+	domain_t domain;
+	int id;
+};
+struct value
+{
+	int number;
+	time_t time;
+	string name;
+};
+
+struct column_t
+{
+	int ckey;
+	int attr; //позиция атрибута, индекс
+	long int value;
+	bool isDeleted;
+};
+struct familycolumn 
+{
+	int dkey;
+	//концепт - ckey[позиция первого входа] 
+	column_t columns[sz];
+	int amount; //текущий указатель
+};
+struct supercolumn_t 
+{
+	int count; //текущий указатель
+	familycolumn fc[sz];
+};
+struct table
+{
+	int dkey;
+	int ckey;
+	int attrs; // количество атрибутов таблицы
+	attribute atr[sz];
+	value name; //пока нигде не используется
+	int amount; //текущий
+				//supercolumn_t* supercolumn;
+};
+//глобальные переменные(структуры)
+table tab;
+//supercolumn_t sc;
+domain_t attrs;
+
+//подумать: более сложная структура, метка isdeleted на распр. или на класт. ключе;
+//тогда все элементы можно не проходить 
+
+
+
+void fcinit(int dkey, int ckey, supercolumn_t * sc, long int values[]);
+void createValues(int a, char b, bool c, long int* arr);
+
+void show(table tab, supercolumn_t sc)
+{
+	//массив, берем распр ключ, подставляем его на первое место, класт ключ [распр, класт, и все элементы в один массив дальше]
+	//и затем второй ключ таким же образом, получили массив из веторов с интами
+	for (int j = 0;j < tab.attrs;j++)
+	{
+		cout << tab.atr[j].id << "\t";
+	}
+	cout << endl;
+	for (int i = 0; i < sc.count; i++)
+	{
+		//for (int y = 0;y < sc.fc[i].amount; y++)
+			//cout << sc.fc[i].columns[y].isDeleted;
+		for (int j = 0; j < sc.fc[i].amount; j += tab.attrs - 2)
+		{
+				long int values[sz];
+				for (int k = 0;k < tab.attrs - 2; k++)
+				{
+					values[sc.fc[i].columns[j + k].attr] = sc.fc[i].columns[j + k].value;
+					values[tab.dkey] = sc.fc[i].dkey;
+					values[tab.ckey] = sc.fc[i].columns[k].ckey; //заменил k на i в индексе columns
+				}
+				if (sc.fc[i].columns[j].isDeleted == false) //??
+				for (int v = 0;v < tab.attrs;v++)
+					switch (tab.atr[v].domain)
+					{
+					
+					case INT: 
+						//cout << values[v] << "\t"; //printf
+						printf("%d\t", values[v]);
+						//values[v] ? printf("TRUE\t") : printf("FALSE\t");
+						break;
+					case CHAR:
+						//cout << itoa(values[v]) << "\t";
+						printf("%c\t", values[v]);
+						break;		
+					case BOOL:
+						//cout << (bool)values[v] << "\t";
+						values[v] ? printf("TRUE\t") : printf("FALSE\t");
+						break;
+						//default:
+							//cout << endl;
+					}
+			}
+		cout << endl;
+	}
+	
+}
+int ifconsists(int dk, int ck, supercolumn_t col) //проверяет, еcть ли распределительный и кластерный ключи вместе
+{
+	for (int i = 0;i < col.count;i++)
+	{
+		if (col.fc[i].dkey == dk)
+		{
+			for (int j = 0;j < col.fc[i].amount;j++)
+				if (col.fc[i].columns[j].ckey == ck)
+				{
+					return i;
+				}
+		}
+	}
+	return -1;
+}
+
+void insert(table tab, long int values[], supercolumn_t * sc) //создаем новый пустой кортеж
+{	
+	assert(tab.amount + 1 != sz);
+	tab.amount++;
+	if (ifconsists(values[tab.dkey], values[tab.ckey], *sc) == -1)
+	{
+		fcinit(tab.dkey, tab.ckey, sc, values);
+		return;
+	}
+	else
+	{
+		assert(ifconsists(values[tab.dkey], values[tab.ckey], *sc) > 0);
+	}
+}
+void fcinit(int dkey, int ckey, supercolumn_t *sc, long int values[])
+{
+	int c = sc->count;
+			sc->fc[c].dkey = values[dkey];
+			sc->fc[c].amount = 0;
+			for (int j = 0;j < tab.attrs; j++)
+			{
+				if (j != ckey && j != dkey) {
+					int l = sc->fc[c].amount;
+					sc->fc[c].columns[l].ckey = values[ckey];
+					sc->fc[c].columns[l].attr = j;
+					sc->fc[c].columns[l].value = values[j];
+					sc->fc[c].columns[l].isDeleted = false;
+					sc->fc[c].amount++;
+				}
+			}
+			sc->count +=1;
+			return;
+}
+void fcinsert(int dkey, int ckey, table tab, long int values[], supercolumn_t *sc, int fcindex) //в конец текущего кортежа записываем новые колонки
+{
+	int c = fcindex;
+	sc->fc[c].dkey = values[dkey];
+	sc->fc[c].amount += 1;
+	for (int j = 0;j < tab.attrs; j++)
+	{
+		if (j != ckey && j != dkey) {
+			int l = sc->fc[c].amount;
+			sc->fc[c].columns[l].ckey = values[ckey];
+			sc->fc[c].columns[l].attr = j;
+			sc->fc[c].columns[l].value = values[j];
+			sc->fc[c].columns[l].isDeleted = false;
+			sc->fc[c].amount++;
+		}
+	}
+	sc->count += 1;
+	return;
+}
+void createValues(int a, char b, bool c, long int* arr)
+{
+	arr[0] = (long int)a;
+	arr[1] = (long int)b;
+	arr[2] = (long int)c;
+}
+void update(table tab, long int values[],supercolumn_t& sc)
+{
+	int iscons = ifconsists(values[tab.dkey], values[tab.ckey], sc);
+	if (iscons != -1)
+	{
+		for (int j = 0;j < sc.fc[iscons].amount;j++)
+		{
+			//удалить только те элементы, в которых кластерный ключ имеет такое же значение(те, ктороые обновляются)
+			if (sc.fc[iscons].columns[j].ckey == tab.ckey)
+				sc.fc[iscons].columns[j].isDeleted = true;
+		}
+		//insert(tab, values, &sc); 
+		fcinsert(tab.dkey, tab.ckey, tab, values, &sc, iscons);
+		return;
+	}
+	else
+	{
+		//cout << "Элементов для обновления не найдено" << endl;
+		fcinit(tab.dkey, tab.ckey, &sc, values); //??
+		return;
+	}
+}
+void dbinit(int dkey, int ckey, string name, string* attrs, int amount) //attrs - в порядке
+{
+	tab.dkey = dkey;
+	tab.ckey = ckey;
+	tab.attrs = amount;
+	tab.name.name = name;
+	tab.name.time = time(0);
+	tab.name.number = 0;
+	tab.amount = 0;
+	attribute atr[sz];
+	for (int i = 0; i < tab.attrs; i++)
+	{
+		tab.atr[i].id = i;
+		if (attrs[i] == "CHAR")
+			tab.atr[i].domain = CHAR;
+		else if (attrs[i] == "BOOL")
+			tab.atr[i].domain = BOOL;
+		else tab.atr[i].domain = INT;
+	}
+}
+int main()
+{
+	supercolumn_t sc;
+	sc.count = 0;
+	long int arr[3];
+	long int upd_arr[3];
+	//a([5, 1, 2]);
+	setlocale(LC_ALL, "Russian");
+	string domains[3] = { "INT", "CHAR","BOOL" };
+	dbinit(0, 1, "rnd", domains, 3); //тесты(amount == sizeof(domains) - последний аргумент
+	createValues(18, 'm', false, arr);
+	insert(tab, arr, &sc);
+	//show(tab, sc);
+	createValues(19, 'w', true, arr);
+	insert(tab, arr, &sc);
+	//update(tab, arr, sc);
+
+	//createValues(18, 'b', false, arr);
+	//update(tab, arr, sc);
+	//show(tab, sc);
+	//show(tab, sc);
+	createValues(17, 'm', true, arr);
+	
+
+	//createValues(18, 'a', true, arr); 
+										//если ckey и dkey в операции апдейт уже существуют(одновременно!), то будет выведено сообщение о ненахождении элементов для обновления
+	update(tab, arr, sc);     
+
+	//insert(tab, arr, &sc);
+	//createValues(19, 'e', true, arr);
+	// проблемы с боксингом чаров после 1- го
+	//createValues(12, 'w', false, arr);
+	//insert(tab, arr, &sc);
+	//createValues(17, 'o', true, arr);
+	//insert(tab, arr, &sc);
+	//появляется символ M, это не зависит от нового входного чара! 
+	//insert(tab, arr, &sc);
+
+	 //fcinit = antishow
+	show(tab, sc);
+	//show(tab, sc);
+	//createValues(18, 'w', false, upd_arr);
+	//insert(tab, upd_arr, &sc);
+	//show(tab, sc);
+	//repeat	
+	//dbinit 
+	//createvalues -> insert
+	return 0;
+}
